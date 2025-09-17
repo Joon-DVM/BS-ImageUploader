@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BS 이미지 업로더</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .custom-file-upload {
+            border: 2px dashed #e5e7eb;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .custom-file-upload:hover {
+            background-color: #f3f4f6;
+            border-color: #d1d5db;
+        }
+        .disabled-opacity {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .user-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .user-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .progress-bar-container {
+            height: 12px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #2563eb;
+            width: 0%;
+            transition: width 0.4s ease-in-out;
+        }
+        .app-container.locked .content-overlay {
+            display: block;
+        }
+        .content-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div id="app-container" class="app-container bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto transform transition-all duration-300 locked relative">
+        <div class="absolute top-4 right-4 z-20">
+            <button id="pin-button" class="p-2 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            </button>
+        </div>
+        <div class="content-overlay"></div>
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">BS 이미지 업로더</h1>
+        <p class="text-center text-gray-500 mb-8">사진을 업로드할 사용자를 선택하고 정보를 입력하세요.</p>
+        
+        <!-- 사용자 선택 섹션 -->
+        <div id="user-select-section" class="space-y-4 mb-8">
+            <div id="user-cards-container" class="grid grid-cols-2 gap-4">
+                <div data-user-name="김형준" class="user-card flex flex-col items-center p-6 bg-gray-100 rounded-xl">
+                    <svg class="w-12 h-12 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="font-semibold text-gray-700">김형준</span>
+                </div>
+                <div data-user-name="조문주" class="user-card flex flex-col items-center p-6 bg-gray-100 rounded-xl">
+                    <svg class="w-12 h-12 text-green-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="font-semibold text-gray-700">조문주</span>
+                </div>
+                <div data-user-name="김지현" class="user-card flex flex-col items-center p-6 bg-gray-100 rounded-xl">
+                    <svg class="w-12 h-12 text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="font-semibold text-gray-700">김지현</span>
+                </div>
+                <div data-user-name="민금주" class="user-card flex flex-col items-center p-6 bg-gray-100 rounded-xl">
+                    <svg class="w-12 h-12 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="font-semibold text-gray-700">민금주</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 파일 업로드 UI -->
+        <div id="upload-section">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">수의사</h2>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label for="patient-name" class="block text-sm font-medium text-gray-700">환자명</label>
+                    <input type="text" id="patient-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                </div>
+                <div>
+                    <label for="guardian-name" class="block text-sm font-medium text-gray-700">보호자명</label>
+                    <input type="text" id="guardian-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                </div>
+                <div>
+                    <label for="file-title" class="block text-sm font-medium text-gray-700">파일제목</label>
+                    <input type="text" id="file-title" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2">
+                </div>
+            </div>
+
+            <!-- 이미지 선택 아이콘과 업로드 버튼 -->
+            <div class="flex items-center justify-between mb-4">
+                <div id="file-upload-icon-container" class="flex items-center space-x-2 cursor-pointer p-3 rounded-xl border border-gray-300 transition-colors duration-200 hover:bg-gray-100">
+                    <svg id="upload-icon" class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span class="text-sm font-semibold text-gray-700">이미지 선택</span>
+                    <input id="file-upload" type="file" multiple accept="image/jpeg, image/png"/>
+                </div>
+                <button id="upload-button" class="flex-grow ml-4 bg-blue-600 text-white py-3 rounded-xl font-semibold shadow-lg transition-transform duration-200 transform hover:scale-105 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    업로드
+                </button>
+            </div>
+
+            <!-- 파일 목록 및 폴더 경로 -->
+            <p id="upload-folder-path" class="text-xs text-gray-400 mt-1 text-center">파일이 드랍박스에 업로드될 폴더 경로가 여기에 표시됩니다.</p>
+            <div id="file-list" class="space-y-3 mt-4">
+                <!-- 파일 목록이 여기에 동적으로 추가됩니다 -->
+            </div>
+            
+            <!-- 업로드 상태 게이지 및 메시지 -->
+            <div id="upload-status-container" class="mt-6">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm font-medium text-gray-700">업로드 진행 상태</span>
+                    <span id="progress-percentage" class="text-sm font-medium text-gray-700">0%</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+                <div id="upload-status-final" class="text-center mt-4 font-semibold text-gray-500">업로드 대기 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 상태 메시지를 위한 모달 -->
+    <div id="status-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs text-center">
+            <p id="status-message" class="text-lg font-medium text-gray-800"></p>
+            <button id="close-modal-button" class="mt-4 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">닫기</button>
+        </div>
+    </div>
+
+    <!-- 파일 선택 옵션 모달 -->
+    <div id="file-options-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs space-y-4 text-center">
+            <h3 class="text-lg font-bold text-gray-800">파일 업로드</h3>
+            <div class="space-y-2">
+                <button id="camera-option" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    사진 찍기 (시뮬레이션)
+                </button>
+                <button id="library-option" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    사진 보관함 (시뮬레이션)
+                </button>
+                <button id="file-option" class="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
+                    파일 선택
+                </button>
+            </div>
+            <button id="close-options-modal" class="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-colors">취소</button>
+        </div>
+    </div>
+
+    <!-- PIN 입력 모달 -->
+    <div id="pin-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs text-center">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">PIN을 입력하세요</h3>
+            <input type="password" id="pin-input" class="w-full text-center rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 p-2 mb-2" maxlength="4">
+            <div id="pin-message" class="text-sm font-medium text-red-500 h-5 mb-2"></div>
+            <button id="pin-submit-button" class="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors">확인</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // **주의: 보안상 이유로 실제 앱에서는 이 방식을 사용하면 안 됩니다.**
+            // 앱 키가 소스 코드에 노출됩니다. 테스트 용도로만 사용하세요.
+            // 아래 YOUR_DROPBOX_APP_KEY를 발급받은 실제 키로 교체해 주세요.
+            const APP_KEY = 'YOUR_DROPBOX_APP_KEY';
+            const CORRECT_PIN = '6364';
+
+            // UI 요소
+            const appContainer = document.getElementById('app-container');
+            const pinButton = document.getElementById('pin-button');
+            const pinModal = document.getElementById('pin-modal');
+            const pinInput = document.getElementById('pin-input');
+            const pinSubmitButton = document.getElementById('pin-submit-button');
+            const pinMessage = document.getElementById('pin-message');
+
+            const userCardsContainer = document.getElementById('user-cards-container');
+            const uploadIcon = document.getElementById('upload-icon');
+            const fileInput = document.getElementById('file-upload');
+            const fileListContainer = document.getElementById('file-list');
+            const uploadButton = document.getElementById('upload-button');
+            const statusModal = document.getElementById('status-modal');
+            const statusMessage = document.getElementById('status-message');
+            const closeModalButton = document.getElementById('close-modal-button');
+            const uploadFolderPath = document.getElementById('upload-folder-path');
+            const patientNameInput = document.getElementById('patient-name');
+            const guardianNameInput = document.getElementById('guardian-name');
+            const fileTitleInput = document.getElementById('file-title');
+            
+            // 파일 선택 옵션 모달 관련 요소
+            const fileOptionsModal = document.getElementById('file-options-modal');
+            const cameraOption = document.getElementById('camera-option');
+            const libraryOption = document.getElementById('library-option');
+            const fileOption = document.getElementById('file-option');
+            const closeOptionsModal = document.getElementById('close-options-modal');
+
+            // 업로드 상태 UI 요소
+            const uploadStatusContainer = document.getElementById('upload-status-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.getElementById('progress-percentage');
+            const uploadStatusFinal = document.getElementById('upload-status-final');
+
+            let selectedUser = sessionStorage.getItem('selectedUser');
+            let isUnlocked = false;
+
+            // --- UI 상태 업데이트 함수 ---
+            function updateUIForCurrentState() {
+                if (selectedUser) {
+                    uploadFolderPath.textContent = `/사진/${selectedUser} 폴더에 업로드됩니다.`;
+                } else {
+                    uploadFolderPath.textContent = '사진을 업로드할 사용자를 먼저 선택하세요.';
+                }
+            }
+
+            // 1. 초기 잠금 상태 설정
+            appContainer.classList.add('locked');
+
+            // 2. PIN 버튼 클릭 이벤트
+            pinButton.addEventListener('click', () => {
+                pinModal.classList.remove('hidden');
+                pinInput.focus();
+            });
+
+            // 3. PIN 입력 후 확인 버튼 클릭 이벤트
+            pinSubmitButton.addEventListener('click', () => {
+                const enteredPin = pinInput.value;
+                if (enteredPin === CORRECT_PIN) {
+                    isUnlocked = true;
+                    pinModal.classList.add('hidden');
+                    pinButton.classList.add('hidden');
+                    appContainer.classList.remove('locked');
+                    showStatusMessage('잠금 해제 성공! 모든 기능이 활성화되었습니다.', 'success');
+                } else {
+                    pinMessage.textContent = '잘못된 PIN입니다.';
+                    pinInput.value = '';
+                }
+            });
+
+            // 4. PIN 입력란에서 Enter 키 이벤트
+            pinInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    pinSubmitButton.click();
+                }
+            });
+
+            // 5. 사용자 카드 클릭 이벤트 (잠금 해제 후)
+            userCardsContainer.addEventListener('click', (event) => {
+                if (!isUnlocked) {
+                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
+                    return;
+                }
+                const card = event.target.closest('.user-card');
+                if (card) {
+                    selectedUser = card.dataset.userName;
+                    sessionStorage.setItem('selectedUser', selectedUser);
+                    updateUIForCurrentState();
+                    showStatusMessage(`${selectedUser} 님의 폴더가 선택되었습니다.`, 'success');
+                }
+            });
+
+            // 6. 업로드 아이콘 클릭 이벤트 (잠금 해제 후)
+            uploadIcon.addEventListener('click', () => {
+                if (!isUnlocked) {
+                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
+                    return;
+                }
+                if (!selectedUser) {
+                    showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
+                    return;
+                }
+                fileOptionsModal.classList.remove('hidden');
+            });
+
+            // 7. 파일 선택 옵션 모달 내 버튼 클릭 이벤트
+            fileOption.addEventListener('click', () => {
+                fileOptionsModal.classList.add('hidden');
+                fileInput.click(); // 숨겨진 파일 입력 필드 클릭
+            });
+
+            cameraOption.addEventListener('click', () => {
+                showStatusMessage('이 기능은 실제 앱에서 카메라를 사용하는 것을 시뮬레이션합니다.', 'info');
+                fileOptionsModal.classList.add('hidden');
+            });
+
+            libraryOption.addEventListener('click', () => {
+                showStatusMessage('이 기능은 실제 앱에서 사진 보관함을 사용하는 것을 시뮬레이션합니다.', 'info');
+                fileOptionsModal.classList.add('hidden');
+            });
+
+            closeOptionsModal.addEventListener('click', () => {
+                fileOptionsModal.classList.add('hidden');
+            });
+
+            // 8. 파일 선택 이벤트
+            fileInput.addEventListener('change', (event) => {
+                const files = event.target.files;
+                fileListContainer.innerHTML = '';
+                // 새로운 파일이 선택되면 상태 UI 초기화
+                resetUploadStatusUI();
+
+                for (const file of files) {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'flex items-center justify-between p-3 bg-gray-100 rounded-lg shadow-sm';
+                    fileItem.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span class="text-gray-700 truncate">${file.name}</span>
+                        </div>
+                        <span class="text-sm text-gray-500">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                    `;
+                    fileListContainer.appendChild(fileItem);
+                }
+            });
+
+            // 9. 업로드 버튼 클릭 이벤트
+            uploadButton.addEventListener('click', () => {
+                if (!isUnlocked) {
+                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
+                    return;
+                }
+                if (!selectedUser) {
+                    showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
+                    return;
+                }
+                if (fileInput.files.length === 0) {
+                    showStatusMessage('업로드할 파일을 선택해주세요.', 'warning');
+                    return;
+                }
+                
+                // 업로드 시작 UI 설정
+                uploadButton.disabled = true;
+                uploadButton.classList.add('disabled-opacity');
+                
+                // 진행 상태 초기화
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                uploadStatusFinal.textContent = '업로드 진행 중...';
+                uploadStatusFinal.classList.remove('text-green-600', 'text-red-600');
+                uploadStatusFinal.classList.add('text-gray-500');
+
+                // 파일 이름 생성
+                const patientName = patientNameInput.value.trim() || '환자명_없음';
+                const guardianName = guardianNameInput.value.trim() || '보호자명_없음';
+                const fileTitle = fileTitleInput.value.trim() || '제목_없음';
+                
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+
+                const timestamp = `${year}${month}${day}_${hours}${minutes}${seconds}`;
+                
+                const newFileName = `${patientName}_${guardianName}_${fileTitle}_${timestamp}`;
+                
+                // 업로드 시뮬레이션
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 10;
+                    if (progress > 100) progress = 100;
+                    
+                    progressBar.style.width = `${progress}%`;
+                    progressPercentage.textContent = `${progress}%`;
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        
+                        // 업로드 완료 상태
+                        const isSuccess = Math.random() > 0.1; // 90% 확률로 성공
+                        if (isSuccess) {
+                            uploadStatusFinal.textContent = `업로드 성공! 🎉`;
+                            uploadStatusFinal.classList.remove('text-gray-500');
+                            uploadStatusFinal.classList.add('text-green-600');
+                        } else {
+                            uploadStatusFinal.textContent = `업로드 실패. 😕`;
+                            uploadStatusFinal.classList.remove('text-gray-500');
+                            uploadStatusFinal.classList.add('text-red-600');
+                        }
+                        
+                        // 버튼 다시 활성화
+                        uploadButton.disabled = false;
+                        uploadButton.classList.remove('disabled-opacity');
+                        
+                        // 3초 후 초기 상태로 되돌리기
+                        setTimeout(() => {
+                            resetUploadStatusUI();
+                        }, 3000);
+                    }
+                }, 200);
+            });
+
+            // 10. 상태 메시지를 보여주는 모달 함수
+            function showStatusMessage(message, type) {
+                statusMessage.innerHTML = message;
+                statusModal.classList.remove('hidden');
+            }
+
+            // 11. 모달 닫기 버튼
+            closeModalButton.addEventListener('click', () => {
+                statusModal.classList.add('hidden');
+            });
+            
+            // 12. 업로드 상태 UI 초기화 함수
+            function resetUploadStatusUI() {
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                uploadStatusFinal.textContent = '업로드 대기 중...';
+                uploadStatusFinal.classList.remove('text-green-600', 'text-red-600');
+                uploadStatusFinal.classList.add('text-gray-500');
+                uploadButton.disabled = false;
+                uploadButton.classList.remove('disabled-opacity');
+            }
+        });
+    </script>
+</body>
+</html>
