@@ -206,6 +206,9 @@
             const APP_KEY = 'YOUR_DROPBOX_APP_KEY';
             const CORRECT_PIN = '6364';
 
+            // --- 여기를 당신의 Make.com 웹훅 주소로 바꿔주세요 ---
+            const WEBHOOK_URL = 'https://hook.eu2.make.com/v9sg8v88qrt8h7a2kcz7hk98j99e4xpx';
+
             // UI 요소
             const appContainer = document.getElementById('app-container');
             const pinButton = document.getElementById('pin-button');
@@ -372,95 +375,97 @@
                     fileListContainer.appendChild(fileItem);
                 }
             }
+            
+            // 9. 파일 업로드 함수
+            async function uploadFile(file) {
+                const patientName = patientNameInput.value.trim() || '환자명_없음';
+                const guardianName = guardianNameInput.value.trim() || '보호자명_없음';
+                const fileTitle = fileTitleInput.value.trim() || '제목_없음';
 
-            // 9. 업로드 버튼 클릭 이벤트
-            uploadButton.addEventListener('click', () => {
+                const now = new Date();
+                const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+                
+                const newFileName = `${patientName}_${guardianName}_${fileTitle}_${timestamp}.${file.name.split('.').pop()}`;
+
+                const formData = new FormData();
+                formData.append('file', file, newFileName);
+
+                try {
+                    const response = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    return true; // 성공
+                } catch (error) {
+                    console.error('Upload failed:', error);
+                    return false; // 실패
+                }
+            }
+
+            // 10. 업로드 버튼 클릭 이벤트
+            uploadButton.addEventListener('click', async () => {
                 if (!selectedUser) {
                     showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
                     return;
                 }
+                
                 const filesToUpload = Array.from(fileInputMain.files).concat(Array.from(fileInputCamera.files), Array.from(fileInputLibrary.files));
                 if (filesToUpload.length === 0) {
                     showStatusMessage('업로드할 파일을 선택해주세요.', 'warning');
                     return;
                 }
                 
-                // 업로드 시작 UI 설정
                 uploadButton.disabled = true;
                 uploadButton.classList.add('disabled-opacity');
                 
-                // 진행 상태 초기화
-                progressBar.style.width = '0%';
-                progressPercentage.textContent = '0%';
-                uploadStatusFinal.textContent = '업로드 진행 중...';
-                uploadStatusFinal.classList.remove('text-green-600', 'text-red-600');
-                uploadStatusFinal.classList.add('text-gray-500');
+                let successCount = 0;
+                let failCount = 0;
 
-                // 파일 이름 생성
-                const patientName = patientNameInput.value.trim() || '환자명_없음';
-                const guardianName = guardianNameInput.value.trim() || '보호자명_없음';
-                const fileTitle = fileTitleInput.value.trim() || '제목_없음';
-                
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const seconds = String(now.getSeconds()).padStart(2, '0');
-
-                const timestamp = `${year}${month}${day}_${hours}${minutes}${seconds}`;
-                
-                const newFileName = `${patientName}_${guardianName}_${fileTitle}_${timestamp}`;
-                
-                // 업로드 시뮬레이션
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += 10;
-                    if (progress > 100) progress = 100;
-                    
-                    progressBar.style.width = `${progress}%`;
-                    progressPercentage.textContent = `${progress}%`;
-                    
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        
-                        // 업로드 완료 상태
-                        const isSuccess = Math.random() > 0.1; // 90% 확률로 성공
-                        if (isSuccess) {
-                            uploadStatusFinal.textContent = `업로드 성공! 🎉`;
-                            uploadStatusFinal.classList.remove('text-gray-500');
-                            uploadStatusFinal.classList.add('text-green-600');
-                        } else {
-                            uploadStatusFinal.textContent = `업로드 실패. 😕`;
-                            uploadStatusFinal.classList.remove('text-gray-500');
-                            uploadStatusFinal.classList.add('text-red-600');
-                        }
-                        
-                        // 버튼 다시 활성화
-                        uploadButton.disabled = false;
-                        uploadButton.classList.remove('disabled-opacity');
-                        
-                        // 3초 후 초기 상태로 되돌리기
-                        setTimeout(() => {
-                            resetUploadStatusUI();
-                        }, 3000);
+                for (const file of filesToUpload) {
+                    const isSuccess = await uploadFile(file);
+                    if (isSuccess) {
+                        successCount++;
+                    } else {
+                        failCount++;
                     }
-                }, 200);
+                }
+
+                // UI 업데이트
+                if (failCount === 0) {
+                    uploadStatusFinal.textContent = `업로드 성공! 🎉`;
+                    uploadStatusFinal.classList.remove('text-gray-500');
+                    uploadStatusFinal.classList.add('text-green-600');
+                } else {
+                    uploadStatusFinal.textContent = `업로드 실패. 😕`;
+                    uploadStatusFinal.classList.remove('text-gray-500');
+                    uploadStatusFinal.classList.add('text-red-600');
+                }
+                
+                uploadButton.disabled = false;
+                uploadButton.classList.remove('disabled-opacity');
+                
+                setTimeout(() => {
+                    resetUploadStatusUI();
+                }, 3000);
             });
 
-            // 10. 상태 메시지를 보여주는 모달 함수
+            // 11. 상태 메시지를 보여주는 모달 함수
             function showStatusMessage(message, type) {
                 statusMessage.innerHTML = message;
                 statusModal.classList.remove('hidden');
             }
 
-            // 11. 모달 닫기 버튼
+            // 12. 모달 닫기 버튼
             closeModalButton.addEventListener('click', () => {
                 statusModal.classList.add('hidden');
             });
             
-            // 12. 업로드 상태 UI 초기화 함수
+            // 13. 업로드 상태 UI 초기화 함수
             function resetUploadStatusUI() {
                 progressBar.style.width = '0%';
                 progressPercentage.textContent = '0%';
