@@ -124,7 +124,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     <span class="text-sm font-semibold text-gray-700">이미지 선택</span>
-                    <input id="file-upload" type="file" multiple accept="image/jpeg, image/png"/>
                 </div>
                 <button id="upload-button" class="flex-grow ml-4 bg-blue-600 text-white py-3 rounded-xl font-semibold shadow-lg transition-transform duration-200 transform hover:scale-105 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                     업로드
@@ -164,12 +163,15 @@
         <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-xs space-y-4 text-center">
             <h3 class="text-lg font-bold text-gray-800">파일 업로드</h3>
             <div class="space-y-2">
+                <!-- 카메라 버튼 -->
                 <button id="camera-option" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    사진 찍기 (시뮬레이션)
+                    사진 찍기
                 </button>
+                <!-- 사진 보관함 버튼 -->
                 <button id="library-option" class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
-                    사진 보관함 (시뮬레이션)
+                    사진 보관함
                 </button>
+                <!-- 파일 선택 버튼 -->
                 <button id="file-option" class="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors">
                     파일 선택
                 </button>
@@ -188,6 +190,11 @@
         </div>
     </div>
     
+    <!-- 추가된 input 요소 -->
+    <input id="file-upload-main" type="file" multiple accept="image/jpeg, image/png" style="display: none;"/>
+    <input id="file-upload-camera" type="file" accept="image/*" capture="camera" style="display: none;"/>
+    <input id="file-upload-library" type="file" accept="image/*" style="display: none;"/>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // **주의: 보안상 이유로 실제 앱에서는 이 방식을 사용하면 안 됩니다.**
@@ -206,7 +213,7 @@
 
             const userCardsContainer = document.getElementById('user-cards-container');
             const uploadIcon = document.getElementById('upload-icon');
-            const fileInput = document.getElementById('file-upload');
+            const fileInputMain = document.getElementById('file-upload-main');
             const fileListContainer = document.getElementById('file-list');
             const uploadButton = document.getElementById('upload-button');
             const statusModal = document.getElementById('status-modal');
@@ -229,6 +236,10 @@
             const progressBar = document.getElementById('progress-bar');
             const progressPercentage = document.getElementById('progress-percentage');
             const uploadStatusFinal = document.getElementById('upload-status-final');
+
+            // 추가된 input 요소
+            const fileInputCamera = document.getElementById('file-upload-camera');
+            const fileInputLibrary = document.getElementById('file-upload-library');
 
             let selectedUser = sessionStorage.getItem('selectedUser');
             let isUnlocked = false;
@@ -304,28 +315,27 @@
             // 7. 파일 선택 옵션 모달 내 버튼 클릭 이벤트
             fileOption.addEventListener('click', () => {
                 fileOptionsModal.classList.add('hidden');
-                fileInput.click(); // 숨겨진 파일 입력 필드 클릭
+                fileInputMain.click(); // '파일 선택' 버튼 클릭 시
             });
-
             cameraOption.addEventListener('click', () => {
-                showStatusMessage('이 기능은 실제 앱에서 카메라를 사용하는 것을 시뮬레이션합니다.', 'info');
                 fileOptionsModal.classList.add('hidden');
+                fileInputCamera.click(); // '사진 찍기' 버튼 클릭 시
             });
-
             libraryOption.addEventListener('click', () => {
-                showStatusMessage('이 기능은 실제 앱에서 사진 보관함을 사용하는 것을 시뮬레이션합니다.', 'info');
                 fileOptionsModal.classList.add('hidden');
+                fileInputLibrary.click(); // '사진 보관함' 버튼 클릭 시
             });
-
             closeOptionsModal.addEventListener('click', () => {
                 fileOptionsModal.classList.add('hidden');
             });
 
             // 8. 파일 선택 이벤트
-            fileInput.addEventListener('change', (event) => {
-                const files = event.target.files;
+            fileInputMain.addEventListener('change', (event) => handleFileSelection(event.target.files));
+            fileInputCamera.addEventListener('change', (event) => handleFileSelection(event.target.files));
+            fileInputLibrary.addEventListener('change', (event) => handleFileSelection(event.target.files));
+            
+            function handleFileSelection(files) {
                 fileListContainer.innerHTML = '';
-                // 새로운 파일이 선택되면 상태 UI 초기화
                 resetUploadStatusUI();
 
                 for (const file of files) {
@@ -342,7 +352,7 @@
                     `;
                     fileListContainer.appendChild(fileItem);
                 }
-            });
+            }
 
             // 9. 업로드 버튼 클릭 이벤트
             uploadButton.addEventListener('click', () => {
@@ -354,7 +364,7 @@
                     showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
                     return;
                 }
-                if (fileInput.files.length === 0) {
+                if (fileInputMain.files.length === 0 && fileInputCamera.files.length === 0 && fileInputLibrary.files.length === 0) {
                     showStatusMessage('업로드할 파일을 선택해주세요.', 'warning');
                     return;
                 }
