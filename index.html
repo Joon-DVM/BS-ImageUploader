@@ -39,6 +39,9 @@
             transform: scale(1.03);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
+        .user-card.selected {
+            box-shadow: 0 0 0 3px #3b82f6;
+        }
         .progress-bar-container {
             height: 12px;
             background-color: #e5e7eb;
@@ -67,13 +70,13 @@
     </style>
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
-    <div id="app-container" class="app-container bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto transform transition-all duration-300 locked relative">
+    <div id="app-container" class="app-container bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto transform transition-all duration-300 relative">
         <div class="absolute top-4 right-4 z-20">
-            <button id="pin-button" class="p-2 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors">
+            <button id="pin-button" class="p-2 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors hidden">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
             </button>
         </div>
-        <div class="content-overlay"></div>
+        <div class="content-overlay hidden"></div>
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">BS 이미지 업로더</h1>
         <p class="text-center text-gray-500 mb-8">사진을 업로드할 사용자를 선택하고 정보를 입력하세요.</p>
         
@@ -212,8 +215,7 @@
             const pinMessage = document.getElementById('pin-message');
 
             const userCardsContainer = document.getElementById('user-cards-container');
-            const uploadIcon = document.getElementById('upload-icon');
-            const fileInputMain = document.getElementById('file-upload-main');
+            const uploadIconContainer = document.getElementById('file-upload-icon-container');
             const fileListContainer = document.getElementById('file-list');
             const uploadButton = document.getElementById('upload-button');
             const statusModal = document.getElementById('status-modal');
@@ -227,7 +229,7 @@
             // 파일 선택 옵션 모달 관련 요소
             const fileOptionsModal = document.getElementById('file-options-modal');
             const cameraOption = document.getElementById('camera-option');
-            const libraryOption = document.getElementById('library-option');
+            const libraryOption = document = document.getElementById('library-option');
             const fileOption = document.getElementById('file-option');
             const closeOptionsModal = document.getElementById('close-options-modal');
 
@@ -238,11 +240,12 @@
             const uploadStatusFinal = document.getElementById('upload-status-final');
 
             // 추가된 input 요소
+            const fileInputMain = document.getElementById('file-upload-main');
             const fileInputCamera = document.getElementById('file-upload-camera');
             const fileInputLibrary = document.getElementById('file-upload-library');
 
             let selectedUser = sessionStorage.getItem('selectedUser');
-            let isUnlocked = false;
+            let isUnlocked = true; // PIN 잠금 해제
 
             // --- UI 상태 업데이트 함수 ---
             function updateUIForCurrentState() {
@@ -252,17 +255,32 @@
                     uploadFolderPath.textContent = '사진을 업로드할 사용자를 먼저 선택하세요.';
                 }
             }
+            
+            // 초기 선택 상태 복원
+            if (selectedUser) {
+                const selectedCard = document.querySelector(`[data-user-name="${selectedUser}"]`);
+                if (selectedCard) {
+                    selectedCard.classList.add('selected');
+                }
+                updateUIForCurrentState();
+            }
 
             // 1. 초기 잠금 상태 설정
-            appContainer.classList.add('locked');
+            appContainer.classList.remove('locked');
+            pinButton.classList.add('hidden');
 
             // 2. PIN 버튼 클릭 이벤트
+            // (핀 입력 비활성화로 주석처리)
+            /*
             pinButton.addEventListener('click', () => {
                 pinModal.classList.remove('hidden');
                 pinInput.focus();
             });
-
+            */
+            
             // 3. PIN 입력 후 확인 버튼 클릭 이벤트
+            // (핀 입력 비활성화로 주석처리)
+            /*
             pinSubmitButton.addEventListener('click', () => {
                 const enteredPin = pinInput.value;
                 if (enteredPin === CORRECT_PIN) {
@@ -276,35 +294,36 @@
                     pinInput.value = '';
                 }
             });
+            */
 
             // 4. PIN 입력란에서 Enter 키 이벤트
+            // (핀 입력 비활성화로 주석처리)
+            /*
             pinInput.addEventListener('keypress', (event) => {
                 if (event.key === 'Enter') {
                     pinSubmitButton.click();
                 }
             });
+            */
 
             // 5. 사용자 카드 클릭 이벤트 (잠금 해제 후)
             userCardsContainer.addEventListener('click', (event) => {
-                if (!isUnlocked) {
-                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
-                    return;
-                }
                 const card = event.target.closest('.user-card');
                 if (card) {
+                    // 모든 카드에서 selected 클래스 제거
+                    document.querySelectorAll('.user-card').forEach(c => c.classList.remove('selected'));
+                    
+                    // 클릭된 카드에 selected 클래스 추가
+                    card.classList.add('selected');
+                    
                     selectedUser = card.dataset.userName;
                     sessionStorage.setItem('selectedUser', selectedUser);
                     updateUIForCurrentState();
-                    showStatusMessage(`${selectedUser} 님의 폴더가 선택되었습니다.`, 'success');
                 }
             });
 
             // 6. 업로드 아이콘 클릭 이벤트 (잠금 해제 후)
-            uploadIcon.addEventListener('click', () => {
-                if (!isUnlocked) {
-                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
-                    return;
-                }
+            uploadIconContainer.addEventListener('click', () => {
                 if (!selectedUser) {
                     showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
                     return;
@@ -356,15 +375,12 @@
 
             // 9. 업로드 버튼 클릭 이벤트
             uploadButton.addEventListener('click', () => {
-                if (!isUnlocked) {
-                    showStatusMessage('먼저 PIN을 입력하여 앱을 잠금 해제하세요.', 'warning');
-                    return;
-                }
                 if (!selectedUser) {
                     showStatusMessage('사용자를 먼저 선택해주세요.', 'warning');
                     return;
                 }
-                if (fileInputMain.files.length === 0 && fileInputCamera.files.length === 0 && fileInputLibrary.files.length === 0) {
+                const filesToUpload = Array.from(fileInputMain.files).concat(Array.from(fileInputCamera.files), Array.from(fileInputLibrary.files));
+                if (filesToUpload.length === 0) {
                     showStatusMessage('업로드할 파일을 선택해주세요.', 'warning');
                     return;
                 }
