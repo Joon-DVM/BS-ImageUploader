@@ -183,6 +183,7 @@
             // 아래 YOUR_DROPBOX_APP_KEY를 발급받은 실제 키로 교체해 주세요.
             const APP_KEY = 'YOUR_DROPBOX_APP_KEY';
             const CORRECT_PIN = '8888';
+            const MAX_FILE_SIZE_MB = 20; // 파일당 최대 20MB 제한
 
             // --- 여기를 당신의 Make.com 웹훅 주소로 바꿔주세요 ---
             const WEBHOOK_URL = 'https://hook.eu2.make.com/v9sg8v88qrt8h7a2kcz7hk98j99e4xpx';
@@ -205,7 +206,7 @@
             const closeModalButton = document.getElementById('close-modal-button');
             const uploadFolderPath = document.getElementById('upload-folder-path');
             const patientNameInput = document.getElementById('patient-name');
-            const guardianNameInput = document = document.getElementById('guardian-name');
+            const guardianNameInput = document.getElementById('guardian-name'); // 오타 수정
             const fileTitleInput = document.getElementById('file-title');
             
             // 업로드 상태 UI 요소
@@ -321,8 +322,27 @@
             function handleFileSelection(files) {
                 fileListContainer.innerHTML = '';
                 resetUploadStatusUI();
-
+                
+                let validFiles = [];
                 for (const file of files) {
+                    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                        showStatusMessage(`'${file.name}' 파일이 ${MAX_FILE_SIZE_MB}MB를 초과하여 업로드할 수 없습니다.`, 'warning');
+                        continue;
+                    }
+                    validFiles.push(file);
+                }
+                
+                // 유효한 파일만 input에 다시 할당
+                if (validFiles.length > 0) {
+                     // DataTransfer 객체를 사용하여 input.files를 업데이트
+                    const dataTransfer = new DataTransfer();
+                    validFiles.forEach(file => dataTransfer.items.add(file));
+                    fileInputFile.files = dataTransfer.files;
+                } else {
+                    fileInputFile.files = new DataTransfer().files; // 파일이 없으면 초기화
+                }
+
+                for (const file of validFiles) {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'flex items-center justify-between p-3 bg-gray-100 rounded-lg shadow-sm';
                     fileItem.innerHTML = `
@@ -351,6 +371,8 @@
 
                 const formData = new FormData();
                 formData.append('file', file, newFileName);
+                
+                console.log(`[LOG] '${file.name}' 파일 업로드 요청 시작...`);
 
                 try {
                     const response = await fetch(WEBHOOK_URL, {
@@ -359,13 +381,16 @@
                     });
                     
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        const errorText = await response.text();
+                        console.error(`[ERROR] 업로드 실패: HTTP 상태 ${response.status}, 응답: ${errorText}`);
+                        return { success: false, message: `업로드 실패: 서버 오류 (${response.status})` };
                     }
                     
-                    return true; // 성공
+                    console.log(`[LOG] '${file.name}' 파일 업로드 성공!`);
+                    return { success: true, message: '업로드 성공' };
                 } catch (error) {
-                    console.error('Upload failed:', error);
-                    return false; // 실패
+                    console.error('[ERROR] 업로드 중 네트워크 오류:', error);
+                    return { success: false, message: `네트워크 오류: ${error.message}` };
                 }
             }
 
@@ -380,7 +405,7 @@
                     return;
                 }
                 
-                const filesToUpload = Array.from(fileInputCamera.files).concat(Array.from(fileInputLibrary.files), Array.from(fileInputFile.files));
+                const filesToUpload = Array.from(fileInputFile.files);
                 if (filesToUpload.length === 0) {
                     showStatusMessage('업로드할 파일을 선택해주세요.', 'warning');
                     return;
@@ -391,13 +416,15 @@
                 
                 let successCount = 0;
                 let failCount = 0;
+                let statusMessages = [];
 
                 for (const file of filesToUpload) {
-                    const isSuccess = await uploadFile(file);
-                    if (isSuccess) {
+                    const result = await uploadFile(file);
+                    if (result.success) {
                         successCount++;
                     } else {
                         failCount++;
+                        statusMessages.push(`'${file.name}' 업로드 실패: ${result.message}`);
                     }
                 }
 
@@ -406,10 +433,12 @@
                     uploadStatusFinal.textContent = `업로드 성공! 🎉`;
                     uploadStatusFinal.classList.remove('text-gray-500');
                     uploadStatusFinal.classList.add('text-green-600');
+                    showStatusMessage('모든 파일이 성공적으로 업로드되었습니다!', 'success');
                 } else {
                     uploadStatusFinal.textContent = `업로드 실패. 😕`;
                     uploadStatusFinal.classList.remove('text-gray-500');
                     uploadStatusFinal.classList.add('text-red-600');
+                    showStatusMessage(`업로드 실패: ${failCount}개 파일. <br> ${statusMessages.join('<br>')}`, 'error');
                 }
                 
                 uploadButton.disabled = false;
